@@ -2,19 +2,25 @@ import os
 import threading, queue
 import discord
 from discord.ext.commands import Bot
+
 import youtube_dl
 from youtube_search import YoutubeSearch
 import json
 import time
 import asyncio
 
-client = Bot(command_prefix="-")
+intents = discord.Intents.default()
+intents.reactions = True
+
+client = Bot(command_prefix="-", intents=intents)
 
 song_queue = []
 bot_voice = []
 thread_list = []
 queue = queue.Queue()
-
+load_emoji = "🔄"
+check_mark_emoji = "✅"
+x_mark_emoji = "❌"
 
 def getChannel(ctx, channelName):
     return discord.utils.get(ctx.guild.voice_channels, name=channelName)
@@ -53,11 +59,11 @@ async def verifyPlayMessage(ctx, message):
 
 async def sendPlayingSongMessage(song_url):
     await client.get_channel(song_queue[0].get("channelID")).send(
-        "Groover is now playing : " + song_queue[0].get("title") + " \n" + song_url)
+        "Groover is now playing : " + song_queue[0].get("title") + "\n" + song_url)
 
 
 async def sendQueueMessage(ctx, index, song_url):
-    await ctx.send(content="Queued " + song_queue[index].get("title") + " \n" +  song_url)
+    await ctx.send(content="Queued " + song_queue[index].get("title") + "\n" +  song_url)
 
 
 def verifyIfSongIsDownloaded(filename):
@@ -84,7 +90,7 @@ def deleteAllSongFile():
         if file.endswith(".mp3"):
             os.remove(file.title())
 
-def tryToDownloadSong(url : str):
+async def tryToDownloadSong(ctx, url : str):
     youtube_options = {
         'format': 'bestaudio/best',
         'postprocessors': [{
@@ -95,10 +101,15 @@ def tryToDownloadSong(url : str):
     }
     try:
         if not verifyIfSongIsDownloaded(song_queue[len(song_queue) - 1].get("url_suffix")):
+            await ctx.message.add_reaction(emoji=load_emoji)
             with youtube_dl.YoutubeDL(youtube_options) as ydl:
                 ydl.download([url])
+            await ctx.message.clear_reactions()
+            await ctx.message.add_reaction(emoji=check_mark_emoji)
     except:
         song_queue.pop(len(song_queue) - 1)
+        await ctx.message.clear_reactions()
+        await ctx.message.add_reaction(emoji=x_mark_emoji)
         return False
     return True
 
@@ -127,6 +138,8 @@ def returnWhenNotPlaying():
         time.sleep(1)
         playerManager()
     else:
+        #pause the program to let the player close properly
+        time.sleep(3)
         deleteAllSongFile()
 
 
@@ -161,7 +174,7 @@ async def play(ctx):
         print(result.get("title") + "-" + getYoutubeCodeFromSuffix(result.get("url_suffix")) + ".mp3")
 
         if not verifyIfSongIsDownloaded(result.get("title") + "-" + getYoutubeCodeFromSuffix(result.get("url_suffix")) + ".mp3"):
-            if not tryToDownloadSong(getSongURL(len(song_queue) - 1)):
+            if not await tryToDownloadSong(ctx, getSongURL(len(song_queue) - 1)):
                 await ctx.send("Groover had a problem while downloading the song")
                 return
 
