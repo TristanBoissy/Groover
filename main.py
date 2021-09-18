@@ -127,10 +127,9 @@ def playVoiceSong():
 
 def returnWhenNotPlaying():
     queue.get()
-    while bot_voice[0].is_playing():
+    while bot_voice[0].is_playing() or bot_voice[0].is_paused():
         time.sleep(0.1)
-    #if not verifyIfSameSongInPlaylist():
-        #deleteSongFile(song_queue[0].get("title") + "-" + getYoutubeCodeFromSuffix(song_queue[0].get("url_suffix")) + ".mp3")
+
     queue.task_done()
     song_queue.pop(0)
 
