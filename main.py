@@ -245,4 +245,4 @@ async def skip(ctx):
         await ctx.send("Groover had a problem")
 
 
-client.run('ODg3ODE4ODgxNTE3ODc5MzI2.YUJrxA.Gp2REvN3iQgxvqC4hOxd6BhqV3s')
+client.run('')
